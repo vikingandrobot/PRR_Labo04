@@ -68,7 +68,7 @@ public class Configuration {
     * @param siteId
     * @return
     */
-   public Pair<InetAddress, Integer> getSites(int siteId) {
+   public Pair<InetAddress, Integer> getSite(int siteId) {
       return sites.get(siteId);
    }
 
