@@ -16,10 +16,10 @@ import java.util.logging.Logger;
 public class Task {
    
    // Arbitrary max duration allowed to simulate a calculus
-   public static final int MAX_TASK_DURATION = 2000;
+   public static final int MAX_TASK_DURATION = 3000;
    
    // Arbitrary probability of generating a new task
-   public static final double PROBABILITY = 0.3;
+   public static final double PROBABILITY = 0.5;
    
    // The thread in which to execute the task
    private final Thread thread;
@@ -49,11 +49,16 @@ public class Task {
             }
             
             // Choose whether to stop or start another task
-            if (Math.random() < PROBABILITY) {
-               // Pick a random site
-               // Start a new task on this site
+            if (Math.random() < PROBABILITY && taskManager.getConfiguration().getNumberOfSites() > 1) {
+               
+               // Start a new task on a random site.
+               int j;
+               int numberOfSites = taskManager.getConfiguration().getNumberOfSites();
+               do {
+                  j = (int) (Math.random() * numberOfSites);
+               } while (j == taskManager.getSiteId());
+               taskManager.startNewTaskOnSite(j);
             } else {
-               System.out.println("Task finished successfully.");
                this.taskManager.finishedTask();
                break;
             }
@@ -65,7 +70,6 @@ public class Task {
     * Execute the task.
     */
    public void execute() {
-      System.out.println("Started a new Task.");
       thread.start();
    }
 }

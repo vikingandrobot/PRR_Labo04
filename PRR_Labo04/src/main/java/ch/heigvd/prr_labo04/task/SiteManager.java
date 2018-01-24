@@ -61,7 +61,6 @@ public class SiteManager implements TaskManager {
       // Start a thread to receive messages
       new Thread(() -> {
          try {
-            System.out.println("Creating receiving socket");
             DatagramSocket receiveSocket = new DatagramSocket(
                     config.getSite(siteId).getValue()
             );
@@ -72,9 +71,7 @@ public class SiteManager implements TaskManager {
             // Receive messages
             while (true) {
                try {
-                  System.out.println("Waiting for message...");
                   receiveSocket.receive(packet);
-                  System.out.println("Received a message...");
                   
                   // Add the message to the list and notify the SiteManager
                   synchronized(SiteManager.this) {
@@ -185,15 +182,13 @@ public class SiteManager implements TaskManager {
     */
    @Override
    public synchronized void finishedTask() {
+      System.out.println("A task has completed. Remaining: " + (numberOfTasks - 1));
       --numberOfTasks;
       this.notify();
    }
 
    @Override
    public void startNewTaskOnSite(int siteId) {
-      
-      System.out.println("Request to start a new task on site " + siteId);
-      
       // If asking for current site to do a task
       if (siteId == this.siteId) {
          synchronized(this) {
@@ -266,6 +261,7 @@ public class SiteManager implements TaskManager {
       Task t = new Task(this);
       t.execute();
       ++numberOfTasks;
+      System.out.println("A task has started. Remaining: " + numberOfTasks );
    }
    
    /**
