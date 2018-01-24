@@ -114,8 +114,6 @@ public class SiteManager implements TaskManager {
                if (messages.isEmpty()) {
                   try {
                      wait();
-                     System.out.println("Leaving wait...");
-                     System.out.println(messages.size());
                   } catch (InterruptedException ex) {
                      Logger.getLogger(SiteManager.class.getName()).log(Level.SEVERE, null, ex);
                   }
@@ -144,7 +142,6 @@ public class SiteManager implements TaskManager {
                // Switch on message types
                switch (message.getType()) {
                   case MessageType.REQUEST:
-                     System.out.println("Processing REQUEST message for " + message.getRecipient());
                      
                      // If we are the recipient
                      if (message.getRecipient() == this.siteId) {
@@ -158,7 +155,6 @@ public class SiteManager implements TaskManager {
                      break;
                   
                   case MessageType.TOKEN:
-                     System.out.println("Processing TOKEN message.");
                      hasToken = true;
                      if (!isActive() && !hasBeenActive) {
                         sendMessage(
@@ -182,8 +178,6 @@ public class SiteManager implements TaskManager {
                      break;
                      
                   case MessageType.END:
-                     System.out.println("Processing END message.");
-                     System.out.println("Message type is end");
                      // If the request of termination hasn't been made yet
                      if (!getTerminate()) {
                         setTerminate(true);
@@ -198,7 +192,7 @@ public class SiteManager implements TaskManager {
                         );
                      }
                      
-                     // If there is no task excuting, end  the SiteManager 
+                     // If there is no task excuting, end the SiteManager 
                      if (!isActive()) {
                         System.out.println("Ending application after receiving an END message.");
                         return;

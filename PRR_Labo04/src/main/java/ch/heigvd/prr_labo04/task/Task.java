@@ -19,7 +19,7 @@ public class Task {
    public static final int MAX_TASK_DURATION = 3000;
    
    // Arbitrary probability of generating a new task
-   public static final double PROBABILITY = 0.5;
+   public static final double PROBABILITY = 0.7;
    
    // The thread in which to execute the task
    private final Thread thread;
