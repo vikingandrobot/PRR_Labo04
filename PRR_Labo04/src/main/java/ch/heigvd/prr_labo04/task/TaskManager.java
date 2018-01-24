@@ -1,3 +1,10 @@
+/**
+ * File: TaskManager.java
+ * Date: 24.01.2018
+ * Authors: Sathiya Kiruhsnapillai & Mathieu Monteverde
+ */
+
+
 package ch.heigvd.prr_labo04.task;
 
 /**
