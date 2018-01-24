@@ -38,8 +38,17 @@ public class SiteManager implements TaskManager {
    // Socket to send messages
    private final DatagramSocket sendSocket;
    
+   // Whether or not other site has sent the END message
+   private boolean terminate;
+   
    // True if a request to terminate from the same site has benn made
-   private boolean requestTerminate;
+   private boolean allowNewTasks;
+   
+   // Whether or not 
+   private boolean hasToken;
+   
+   // Wether or not the site has been active since the token was sent
+   private boolean hasBeenActive;
 
    /**
     * Constructor
@@ -54,6 +63,10 @@ public class SiteManager implements TaskManager {
       messages = new ArrayList<>();
       this.siteId = siteId;
       this.config = config;
+      this.hasToken = this.siteId == 0;
+      this.hasBeenActive = false;
+      this.allowNewTasks = true;
+      
       
       // Create the socket to send messages
       sendSocket = new DatagramSocket();
@@ -102,6 +115,7 @@ public class SiteManager implements TaskManager {
                   try {
                      wait();
                      System.out.println("Leaving wait...");
+                     System.out.println(messages.size());
                   } catch (InterruptedException ex) {
                      Logger.getLogger(SiteManager.class.getName()).log(Level.SEVERE, null, ex);
                   }
@@ -109,7 +123,7 @@ public class SiteManager implements TaskManager {
             }
             
             // Check if the site must terminate
-            if (getRequestTerminate() && !isActive()) {
+            if (getTerminate() && !isActive()) {
                // Terminate
                System.out.println("All tasks finished and termination was requested.");
                System.out.println("Terminating...");
@@ -124,34 +138,55 @@ public class SiteManager implements TaskManager {
                synchronized(SiteManager.this) 
                {
                   message = messages.get(0);
-                  messages.remove(message);
+                  messages.remove(0);
                }
                
                // Switch on message types
                switch (message.getType()) {
                   case MessageType.REQUEST:
-                     // If no termination request has been made yet
-                     if (!getRequestTerminate()) {
-                        // If we are the recipient
-                        if (message.getRecipient() == this.siteId) {
-                           // Start a new task
-                           startNewTask();
-                        } else {
-                           // Send the message to our neighbour
-                           sendMessage(message);
-                        }
+                     System.out.println("Processing REQUEST message for " + message.getRecipient());
+                     
+                     // If we are the recipient
+                     if (message.getRecipient() == this.siteId) {
+                        // Start a new task
+                        startNewTask();
+                     } else {
+                        // Send the message to our neighbour
+                        sendMessage(message);
                      }
+                     hasBeenActive = true;
                      break;
                   
                   case MessageType.TOKEN:
-                     
+                     System.out.println("Processing TOKEN message.");
+                     hasToken = true;
+                     if (!isActive() && !hasBeenActive) {
+                        sendMessage(
+                                new Message(
+                                        this.siteId, 
+                                        (this.siteId + 1) % config.getNumberOfSites(), 
+                                        MessageType.END
+                                )
+                        );
+                     } else if (!isActive()) {
+                        sendMessage(
+                                 new Message(
+                                         this.siteId, 
+                                         (this.siteId + 1) % config.getNumberOfSites(), 
+                                         MessageType.TOKEN
+                                 )
+                         );
+                         hasBeenActive = false;
+                         hasToken = false;
+                     }
                      break;
                      
                   case MessageType.END:
+                     System.out.println("Processing END message.");
                      System.out.println("Message type is end");
                      // If the request of termination hasn't been made yet
-                     if (!getRequestTerminate()) {
-                        setRequestTerminate(true);
+                     if (!getTerminate()) {
+                        setTerminate(true);
                         
                         // Send the message to our neighbour
                         sendMessage(
@@ -169,6 +204,21 @@ public class SiteManager implements TaskManager {
                         return;
                      }
                      break;
+               }
+            } else {
+               // If there is no task executing
+               if (!isActive()) {
+                  if (hasToken) {
+                     sendMessage(
+                             new Message(
+                                     this.siteId, 
+                                     (this.siteId + 1) % config.getNumberOfSites(), 
+                                     MessageType.TOKEN
+                             )
+                     );
+                     hasBeenActive = false;
+                     hasToken = false;
+                  }
                }
             }
          }
@@ -192,7 +242,7 @@ public class SiteManager implements TaskManager {
       // If asking for current site to do a task
       if (siteId == this.siteId) {
          synchronized(this) {
-            messages.add(new Message(siteId, siteId, MessageType.REQUEST));
+            messages.add(new Message(this.siteId, this.siteId, MessageType.REQUEST));
             this.notify();
          }
          return;
@@ -206,24 +256,23 @@ public class SiteManager implements TaskManager {
     * Request to terminate the system
     */
    public synchronized void requestTerminate() {
-      messages.add(new Message(this.siteId, this.siteId, MessageType.END));
-      this.notify();
+      allowNewTasks = false;
    }
    
    /**
     * Get wether or not a termination request has been made
     * @return true if a termination request has been made
     */
-   private synchronized boolean getRequestTerminate() {
-      return requestTerminate;
+   private synchronized boolean getTerminate() {
+      return terminate;
    }
    
    /**
     * Set the termination request
     * @param requestTerminate true to make a termination request, false otherwise
     */
-   private synchronized void setRequestTerminate(boolean requestTerminate) {
-      this.requestTerminate = requestTerminate;
+   private synchronized void setTerminate(boolean requestTerminate) {
+      this.terminate = requestTerminate;
    }
    
    /**
@@ -258,10 +307,12 @@ public class SiteManager implements TaskManager {
     * Start a new task on the current site.
     */
    private synchronized void startNewTask() {
-      Task t = new Task(this);
-      t.execute();
-      ++numberOfTasks;
-      System.out.println("A task has started. Remaining: " + numberOfTasks );
+      if (allowNewTasks) {
+         Task t = new Task(this);
+         t.execute();
+         ++numberOfTasks;
+         System.out.println("A task has started. Remaining: " + numberOfTasks );
+      }
    }
    
    /**
