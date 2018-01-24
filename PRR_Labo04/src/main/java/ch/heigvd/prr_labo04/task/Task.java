@@ -23,26 +23,32 @@ public class Task {
    
    private final Thread thread;
    
+   private final TaskManager taskManager;
+   
    /**
     * Constructor. Prepares a new Thread in which to execute the task.
+    * @param taskManager the TaskManager that manages this task
     */
-   public Task() {
+   public Task(TaskManager taskManager) {
+      this.taskManager = taskManager;
+      
       thread = new Thread(() -> {
          while (true) {
             try {
                Thread.sleep((int) (Math.random() * MAX_TASK_DURATION));
             } catch (InterruptedException ex) {
                Logger.getLogger(Task.class.getName()).log(Level.SEVERE, null, ex);
-               exit();
+               this.taskManager.taskFinished();
+               return;
             }
             
             if (Math.random() < PROBABILITY) {
                // Pick a random site
                // Start a new task on this site
             } else {
-               exit();
+               this.taskManager.taskFinished();
+               break;
             }
-            
          }
       });
    }
@@ -52,13 +58,5 @@ public class Task {
     */
    public void execute() {
       thread.start();
-   }
-   
-   /**
-    * Exit the task and notify the TaskManager.
-    */
-   private void exit() {
-      // Notify the TaskManager that we finished
-      // Exit the task 
    }
 }
