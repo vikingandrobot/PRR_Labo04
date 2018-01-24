@@ -19,50 +19,67 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Class that manages the site in the environment.
+ * Class that manages the site in the system.
  */
 public class SiteManager implements TaskManager {
    
+   // The id of the current site
    private final int siteId;
    
+   // The configuration of the site system
    private final Configuration config;
 
+   // List of received messages
    private final List<Message> messages;
-
+   
+   // Number of tasks currently executing
    private int numberOfTasks;
    
+   // Socket to send messages
    private final DatagramSocket sendSocket;
+   
+   // True if a request to terminate from the same site has benn made
+   private boolean requestTerminate;
 
+   /**
+    * Constructor
+    * @param siteId the Id of the current iste
+    * @param config the Configuration of the system to use
+    * @throws SocketException if it can't open the sending socket
+    */
    public SiteManager(int siteId, Configuration config) throws SocketException {
+      
+      // Initialize attributes
       numberOfTasks = 0;
       messages = new ArrayList<>();
       this.siteId = siteId;
       this.config = config;
       
+      // Create the socket to send messages
       sendSocket = new DatagramSocket();
       
       // Start a thread to receive messages
       new Thread(() -> {
          try {
-            System.out.println("Created receiving socket");
+            System.out.println("Creating receiving socket");
             DatagramSocket receiveSocket = new DatagramSocket(
                     config.getSite(siteId).getValue()
             );
             
             byte[] buf = new byte[3];
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
+            
+            // Receive messages
             while (true) {
                try {
                   System.out.println("Waiting for message...");
                   receiveSocket.receive(packet);
                   System.out.println("Received a message...");
                   
-                  byte type = packet.getData()[0];
-                  byte sender = packet.getData()[1];
-                  byte recipient = packet.getData()[2];
-                  
+                  // Add the message to the list and notify the SiteManager
                   synchronized(SiteManager.this) {
-                     messages.add(new Message(sender, recipient, type));
+                     messages.add(toMessage(packet.getData()));
+                     SiteManager.this.notify();
                   }
                } catch (IOException ex) {
                   Logger.getLogger(SiteManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -79,29 +96,54 @@ public class SiteManager implements TaskManager {
     */
    public void start() {
       Thread t = new Thread(() -> {
-
+         
+         // In a loop, manage received messages
          while (true) {
             synchronized (SiteManager.this) {
+               // Wait if there is no message in the list
                if (messages.isEmpty()) {
                   try {
                      wait();
+                     System.out.println("Leaving wait...");
                   } catch (InterruptedException ex) {
                      Logger.getLogger(SiteManager.class.getName()).log(Level.SEVERE, null, ex);
                   }
                }
             }
             
+            // Check if the site must terminate
+            if (getRequestTerminate() && !isActive()) {
+               // Terminate
+               System.out.println("All tasks finished and termination was requested.");
+               System.out.println("Terminating...");
+               return;
+            }
+            
+            // If we have messages to read
             if (!messages.isEmpty()) {
-               Message m;
+               
+               // Get the oldest one
+               Message message;
                synchronized(SiteManager.this) 
                {
-                  m = messages.get(0);
-                  messages.remove(m);
+                  message = messages.get(0);
+                  messages.remove(message);
                }
                
-               switch (m.getType()) {
+               // Switch on message types
+               switch (message.getType()) {
                   case MessageType.REQUEST:
-                     startNewTask();
+                     // If no termination request has been made yet
+                     if (!getRequestTerminate()) {
+                        // If we are the recipient
+                        if (message.getRecipient() == this.siteId) {
+                           // Start a new task
+                           startNewTask();
+                        } else {
+                           // Send the message to our neighbour
+                           sendMessage(message);
+                        }
+                     }
                      break;
                   
                   case MessageType.TOKEN:
@@ -109,7 +151,26 @@ public class SiteManager implements TaskManager {
                      break;
                      
                   case MessageType.END:
+                     System.out.println("Message type is end");
+                     // If the request of termination hasn't been made yet
+                     if (!getRequestTerminate()) {
+                        setRequestTerminate(true);
+                        
+                        // Send the message to our neighbour
+                        sendMessage(
+                                new Message(
+                                        this.siteId, 
+                                        (this.siteId + 1) % config.getNumberOfSites(), 
+                                        MessageType.END
+                                )
+                        );
+                     }
                      
+                     // If there is no task excuting, end  the SiteManager 
+                     if (!isActive()) {
+                        System.out.println("Ending application after receiving an END message.");
+                        return;
+                     }
                      break;
                }
             }
@@ -120,29 +181,126 @@ public class SiteManager implements TaskManager {
    }
 
    /**
-    * Announce the end of a Task
+    * Notify the end of a Task.
     */
    @Override
-   public synchronized void taskFinished() {
+   public synchronized void finishedTask() {
       --numberOfTasks;
+      this.notify();
    }
 
    @Override
    public void startNewTaskOnSite(int siteId) {
-      InetAddress ipAddress = config.getSite(siteId).getKey();
-      int port = config.getSite(siteId).getValue();
       
-      // SEND a REQUEST message
+      System.out.println("Request to start a new task on site " + siteId);
+      
+      // If asking for current site to do a task
+      if (siteId == this.siteId) {
+         synchronized(this) {
+            messages.add(new Message(siteId, siteId, MessageType.REQUEST));
+            this.notify();
+         }
+         return;
+      }
+      
+      // Send a message
+      sendMessage(new Message(this.siteId, siteId, MessageType.REQUEST));
+   }
+   
+   /**
+    * Request to terminate the system
+    */
+   public synchronized void requestTerminate() {
+      messages.add(new Message(this.siteId, this.siteId, MessageType.END));
+      this.notify();
+   }
+   
+   /**
+    * Get wether or not a termination request has been made
+    * @return true if a termination request has been made
+    */
+   private synchronized boolean getRequestTerminate() {
+      return requestTerminate;
+   }
+   
+   /**
+    * Set the termination request
+    * @param requestTerminate true to make a termination request, false otherwise
+    */
+   private synchronized void setRequestTerminate(boolean requestTerminate) {
+      this.requestTerminate = requestTerminate;
+   }
+   
+   /**
+    * Send a message to a site by sending to the current site neighbour
+    * @param message the message to send
+    */
+   private void sendMessage(Message message) {
+      
+      // Get the neighbour data
+      InetAddress ipAddress = config.getSite((this.siteId + 1) % config.getNumberOfSites()).getKey();
+      int port = config.getSite((this.siteId + 1) % config.getNumberOfSites()).getValue();
+      
+      // Construct the message
+      byte[] buf = new byte[3];
+      buf = toByteBuffer(message, buf);
+      
+      
+      try {
+         // Send message
+         sendSocket.send(new DatagramPacket(
+                 buf,
+                 buf.length,
+                 ipAddress,
+                 port
+         ));
+      } catch (IOException ex) {
+         Logger.getLogger(SiteManager.class.getName()).log(Level.SEVERE, null, ex);
+      }
    }
 
+   /**
+    * Start a new task on the current site.
+    */
    private synchronized void startNewTask() {
       Task t = new Task(this);
       t.execute();
       ++numberOfTasks;
    }
    
+   /**
+    * Convert a byte array message to a Message.
+    * @param buf the data to convert
+    * @return a new Message representing the message
+    */
+   private Message toMessage(byte[] buf) {
+      byte type = buf[0];
+      byte sender = buf[1];
+      byte recipient = buf[2];
+      
+      return new Message(sender, recipient, type);
+   }
+   
+   /**
+    * Convert a Message to its byte array representation 
+    * @param message
+    * @param buf
+    * @return 
+    */
+   private byte[] toByteBuffer(Message message, byte[] buf) {
+      buf[0] = message.getType();
+      buf[1] = (byte)message.getSender();
+      buf[2] = (byte)message.getRecipient();
+      
+      return buf;
+   }
+   
+   /**
+    * Get if there are tasks currently executing
+    * @return true if there are tasks currently executing
+    */
    public boolean isActive() {
-      return numberOfTasks == 0;
+      return numberOfTasks != 0;
    }
 
    @Override

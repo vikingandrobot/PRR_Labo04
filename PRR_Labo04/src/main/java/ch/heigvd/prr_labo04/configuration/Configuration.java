@@ -26,8 +26,10 @@ import javafx.util.Pair;
 public class Configuration {
 
    private final List<Pair<InetAddress, Integer>> sites;
+   
+   private final int numberOfSites;
 
-   public Configuration(String configFileName) throws Exception {
+   public Configuration(String configFileName, int numberOfSites) throws Exception {
 
       try (
               BufferedReader buffer = new BufferedReader(
@@ -60,6 +62,8 @@ public class Configuration {
       } catch (IOException e) {
          throw new Exception("Une erreur est survenue en lisant les fichiers.", e);
       }
+      
+      this.numberOfSites = numberOfSites;
    }
 
    /**
@@ -71,5 +75,12 @@ public class Configuration {
    public Pair<InetAddress, Integer> getSite(int siteId) {
       return sites.get(siteId);
    }
-
+   
+   /**
+    * Get the number of sites
+    * @return 
+    */
+   public int getNumberOfSites() {
+      return numberOfSites;
+   }
 }

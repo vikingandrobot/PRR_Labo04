@@ -16,14 +16,14 @@ public interface TaskManager {
    
    /**
     * Start a new task on a given site.
-    * @param siteId the Id of the site
+    * @param siteId the Id of the site on which to start a task
     */
    public void startNewTaskOnSite(int siteId);
    
    /**
     * Notify that a task is finished.
     */
-   public void taskFinished();
+   public void finishedTask();
    
    /**
     * Get the system configuration

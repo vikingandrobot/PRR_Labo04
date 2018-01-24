@@ -19,10 +19,12 @@ public class Task {
    public static final int MAX_TASK_DURATION = 2000;
    
    // Arbitrary probability of generating a new task
-   public static final double PROBABILITY = 0.5;
+   public static final double PROBABILITY = 0.3;
    
+   // The thread in which to execute the task
    private final Thread thread;
    
+   // The TaskManager that instanciated the Task
    private final TaskManager taskManager;
    
    /**
@@ -30,23 +32,29 @@ public class Task {
     * @param taskManager the TaskManager that manages this task
     */
    public Task(TaskManager taskManager) {
+      // Save TaskManager
       this.taskManager = taskManager;
       
       thread = new Thread(() -> {
+         // Do tasks in loop
          while (true) {
             try {
-               Thread.sleep((int) (Math.random() * MAX_TASK_DURATION));
+               // Sleep to simulate the calculus
+               Thread.sleep((int)(Math.random() * MAX_TASK_DURATION));
             } catch (InterruptedException ex) {
+               // If an error occurs, consider it finished
                Logger.getLogger(Task.class.getName()).log(Level.SEVERE, null, ex);
-               this.taskManager.taskFinished();
+               this.taskManager.finishedTask();
                return;
             }
             
+            // Choose whether to stop or start another task
             if (Math.random() < PROBABILITY) {
                // Pick a random site
                // Start a new task on this site
             } else {
-               this.taskManager.taskFinished();
+               System.out.println("Task finished successfully.");
+               this.taskManager.finishedTask();
                break;
             }
          }
@@ -57,6 +65,7 @@ public class Task {
     * Execute the task.
     */
    public void execute() {
+      System.out.println("Started a new Task.");
       thread.start();
    }
 }
