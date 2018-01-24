@@ -31,8 +31,10 @@ public class SiteManager implements TaskManager {
    }
 
    @Override
-   public void startNewTask() {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+   public synchronized void startNewTask() {
+      Task t = new Task(this);
+      t.execute();
+      ++numberOfTasks;
    }
    
    

@@ -6,7 +6,7 @@ package ch.heigvd.prr_labo04.task;
 public interface TaskManager {
    
    /**
-    * Start a new task.
+    * Start a new task on the current site.
     */
    public void startNewTask();
    
