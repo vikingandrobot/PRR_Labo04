@@ -38,6 +38,11 @@ import java.util.Scanner;
  * the site of id 0. Otherwise, the site executing said commands won't be the holder
  * of the token and won't be able to request the termination of the system 
  * if the tasks directly end.
+ * 
+ * The application still has a small known bug (not from the termination algorithm though).
+ * When the SiteManager(s) terminate the algorithm on their own (without the user requesting
+ * to stop creating tasks), the App main method still blocks one Scanner waiting 
+ * for user input. Typing '2' in the command line will end the main application.
  */
 public class App {
    public static void main(String[] args) throws SocketException {
