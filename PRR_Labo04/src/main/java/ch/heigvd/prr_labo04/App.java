@@ -53,7 +53,7 @@ public class App {
       boolean running = true;
       
       // Site manager that controls everything
-      SiteManager manager = new SiteManager(id, config);
+      SiteManager manager = new SiteManager();
       manager.start();
       
       System.out.println("Welcome to this application");

@@ -23,18 +23,29 @@ import javafx.util.Pair;
  * addresses and ports of the sites, the number of sites and the Id of the current 
  * site. It reads the IP configuration from a text file in the resources
  * folder. This class keeps a list of pairs containing the IP addresses 
- * and port of other sites in the system.
+ * and port of other sites in the system. It is implemented as a Singleton.
  */
 public class Configuration {
-
+   
+   // List of Pairs object, the key being the IP address, the value being the port
    private final List<Pair<InetAddress, Integer>> sites;
    
+   // Number of sites in the system
    private final int numberOfSites;
    
+   // The Id of the current site
    private final int siteId;
    
+   // Singleton instance
    private static Configuration configuration;
-
+   
+   /**
+    * Create a Configuration instance
+    * @param configFileName the path to the configuration file 
+    * @param siteId the current site Id
+    * @param numberOfSites the number of sites in the system
+    * @throws Exception 
+    */
    private Configuration(String configFileName, int siteId, int numberOfSites) throws Exception {
 
       try (

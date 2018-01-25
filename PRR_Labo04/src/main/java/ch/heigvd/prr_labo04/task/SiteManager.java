@@ -52,17 +52,15 @@ public class SiteManager implements TaskManager {
 
    /**
     * Constructor
-    * @param siteId the Id of the current iste
-    * @param config the Configuration of the system to use
     * @throws SocketException if it can't open the sending socket
     */
-   public SiteManager(int siteId, Configuration config) throws SocketException {
+   public SiteManager() throws SocketException {
       
       // Initialize attributes
       numberOfTasks = 0;
       messages = new ArrayList<>();
-      this.siteId = siteId;
-      this.config = config;
+      this.config = Configuration.getConfiguration();
+      this.siteId = config.getSiteId();
       this.hasToken = this.siteId == 0;
       this.hasBeenActive = false;
       this.allowNewTasks = true;
@@ -312,15 +310,4 @@ public class SiteManager implements TaskManager {
    public boolean isActive() {
       return numberOfTasks != 0;
    }
-
-   @Override
-   public int getSiteId() {
-      return siteId;
-   }
-
-   @Override
-   public Configuration getConfiguration() {
-      return config;
-   }
-
 }

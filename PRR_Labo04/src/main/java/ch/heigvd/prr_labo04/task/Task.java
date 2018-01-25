@@ -6,6 +6,7 @@
 
 package ch.heigvd.prr_labo04.task;
 
+import ch.heigvd.prr_labo04.configuration.Configuration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -14,6 +15,9 @@ import java.util.logging.Logger;
  * It simulates the execution of a calculus.
  */
 public class Task {
+   
+   // The Configuration to use
+   private final Configuration config;
    
    // Arbitrary max duration allowed to simulate a calculus
    public static final int MAX_TASK_DURATION = 3000;
@@ -34,6 +38,8 @@ public class Task {
    public Task(TaskManager taskManager) {
       // Save TaskManager
       this.taskManager = taskManager;
+      // Configuration
+      this.config = Configuration.getConfiguration();
       
       thread = new Thread(() -> {
          // Do tasks in loop
@@ -49,14 +55,14 @@ public class Task {
             }
             
             // Choose whether to stop or start another task
-            if (Math.random() < PROBABILITY && taskManager.getConfiguration().getNumberOfSites() > 1) {
+            if (Math.random() < PROBABILITY && config.getNumberOfSites() > 1) {
                
                // Start a new task on a random site.
                int j;
-               int numberOfSites = taskManager.getConfiguration().getNumberOfSites();
+               int numberOfSites = config.getNumberOfSites();
                do {
                   j = (int) (Math.random() * numberOfSites);
-               } while (j == taskManager.getSiteId());
+               } while (j == config.getSiteId());
                taskManager.startNewTaskOnSite(j);
             } else {
                this.taskManager.finishedTask();
