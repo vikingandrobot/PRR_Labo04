@@ -78,7 +78,7 @@ public class SiteManager implements TaskManager {
                     config.getSite(siteId).getValue()
             );
             
-            byte[] buf = new byte[3];
+            byte[] buf = new byte[2];
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             
             // Receive messages
@@ -159,7 +159,6 @@ public class SiteManager implements TaskManager {
                      if (!isActive() && !hasBeenActive) {
                         sendMessage(
                                 new Message(
-                                        this.siteId, 
                                         (this.siteId + 1) % config.getNumberOfSites(), 
                                         MessageType.END
                                 )
@@ -167,7 +166,6 @@ public class SiteManager implements TaskManager {
                      } else if (!isActive()) {
                         sendMessage(
                                  new Message(
-                                         this.siteId, 
                                          (this.siteId + 1) % config.getNumberOfSites(), 
                                          MessageType.TOKEN
                                  )
@@ -185,7 +183,6 @@ public class SiteManager implements TaskManager {
                         // Send the message to our neighbour
                         sendMessage(
                                 new Message(
-                                        this.siteId, 
                                         (this.siteId + 1) % config.getNumberOfSites(), 
                                         MessageType.END
                                 )
@@ -205,7 +202,6 @@ public class SiteManager implements TaskManager {
                   if (hasToken) {
                      sendMessage(
                              new Message(
-                                     this.siteId, 
                                      (this.siteId + 1) % config.getNumberOfSites(), 
                                      MessageType.TOKEN
                              )
@@ -236,14 +232,14 @@ public class SiteManager implements TaskManager {
       // If asking for current site to do a task
       if (siteId == this.siteId) {
          synchronized(this) {
-            messages.add(new Message(this.siteId, this.siteId, MessageType.REQUEST));
+            messages.add(new Message(this.siteId, MessageType.REQUEST));
             this.notify();
          }
          return;
       }
       
       // Send a message
-      sendMessage(new Message(this.siteId, siteId, MessageType.REQUEST));
+      sendMessage(new Message(siteId, MessageType.REQUEST));
    }
    
    /**
@@ -280,7 +276,7 @@ public class SiteManager implements TaskManager {
       int port = config.getSite((this.siteId + 1) % config.getNumberOfSites()).getValue();
       
       // Construct the message
-      byte[] buf = new byte[3];
+      byte[] buf = new byte[2];
       buf = toByteBuffer(message, buf);
       
       
@@ -316,10 +312,9 @@ public class SiteManager implements TaskManager {
     */
    private Message toMessage(byte[] buf) {
       byte type = buf[0];
-      byte sender = buf[1];
-      byte recipient = buf[2];
+      byte recipient = buf[1];
       
-      return new Message(sender, recipient, type);
+      return new Message(recipient, type);
    }
    
    /**
@@ -330,8 +325,7 @@ public class SiteManager implements TaskManager {
     */
    private byte[] toByteBuffer(Message message, byte[] buf) {
       buf[0] = message.getType();
-      buf[1] = (byte)message.getSender();
-      buf[2] = (byte)message.getRecipient();
+      buf[1] = (byte)message.getRecipient();
       
       return buf;
    }
