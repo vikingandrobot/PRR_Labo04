@@ -66,7 +66,7 @@ public class Task {
                taskManager.startNewTaskOnSite(j);
             } else {
                this.taskManager.finishedTask();
-               break;
+               return;
             }
          }
       });

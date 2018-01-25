@@ -7,6 +7,8 @@ package ch.heigvd.prr_labo04.task;
 
 import ch.heigvd.prr_labo04.configuration.Configuration;
 import ch.heigvd.prr_labo04.message.Message;
+import ch.heigvd.prr_labo04.message.MessageListener;
+import ch.heigvd.prr_labo04.message.MessageReceiver;
 import ch.heigvd.prr_labo04.message.MessageType;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -21,7 +23,7 @@ import java.util.logging.Logger;
 /**
  * Class that manages the site in the system.
  */
-public class SiteManager implements TaskManager {
+public class SiteManager implements TaskManager, MessageListener {
    
    // The id of the current site
    private final int siteId;
@@ -34,6 +36,8 @@ public class SiteManager implements TaskManager {
    
    // Number of tasks currently executing
    private int numberOfTasks;
+   
+   private final MessageReceiver messageReceiver;
    
    // Socket to send messages
    private final DatagramSocket sendSocket;
@@ -60,7 +64,7 @@ public class SiteManager implements TaskManager {
       numberOfTasks = 0;
       messages = new ArrayList<>();
       this.config = Configuration.getConfiguration();
-      this.siteId = config.getSiteId();
+      this.siteId = this.config.getSiteId();
       this.hasToken = this.siteId == 0;
       this.hasBeenActive = false;
       this.allowNewTasks = true;
@@ -69,34 +73,11 @@ public class SiteManager implements TaskManager {
       // Create the socket to send messages
       sendSocket = new DatagramSocket();
       
-      // Start a thread to receive messages
-      new Thread(() -> {
-         try {
-            DatagramSocket receiveSocket = new DatagramSocket(
-                    config.getSite(siteId).getValue()
-            );
-            
-            byte[] buf = new byte[2];
-            DatagramPacket packet = new DatagramPacket(buf, buf.length);
-            
-            // Receive messages
-            while (true) {
-               try {
-                  receiveSocket.receive(packet);
-                  
-                  // Add the message to the list and notify the SiteManager
-                  synchronized(SiteManager.this) {
-                     messages.add(Message.byteBufferToMessage(packet.getData()));
-                     SiteManager.this.notify();
-                  }
-               } catch (IOException ex) {
-                  Logger.getLogger(SiteManager.class.getName()).log(Level.SEVERE, null, ex);
-               }
-            }
-         } catch (SocketException ex) {
-            Logger.getLogger(SiteManager.class.getName()).log(Level.SEVERE, null, ex);
-         }
-      }).start();
+      // Create the MessageReceiver
+      messageReceiver = new MessageReceiver(
+              Configuration.getConfiguration().getSite(this.siteId).getValue(), this
+      );
+      messageReceiver.start();
    }
 
    /**
@@ -123,6 +104,7 @@ public class SiteManager implements TaskManager {
                // Terminate
                System.out.println("All tasks finished and termination was requested.");
                System.out.println("Terminating...");
+               closeResources();
                return;
             }
             
@@ -190,6 +172,7 @@ public class SiteManager implements TaskManager {
                      // If there is no task excuting, end the SiteManager 
                      if (!isActive()) {
                         System.out.println("Ending application after receiving an END message.");
+                        closeResources();
                         return;
                      }
                      break;
@@ -213,6 +196,20 @@ public class SiteManager implements TaskManager {
 
       });
       t.start();
+   }
+   
+   /**
+    * Close the resources
+    */
+   private void closeResources() {
+      messageReceiver.stop();
+   }
+   
+   @Override
+   public synchronized void messageReceived(Message message) {
+      // Add the message to the list and notify the SiteManager
+      messages.add(message);
+      this.notify();
    }
 
    /**

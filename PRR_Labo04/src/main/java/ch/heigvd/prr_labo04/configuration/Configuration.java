@@ -6,7 +6,6 @@
 
 package ch.heigvd.prr_labo04.configuration;
 
-import ch.heigvd.prr_labo04.App;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -51,7 +50,7 @@ public class Configuration {
       try (
               BufferedReader buffer = new BufferedReader(
                       new InputStreamReader(
-                              App.class.getResourceAsStream(configFileName)
+                              Configuration.class.getResourceAsStream(configFileName)
                       )
               )) {
 
@@ -93,7 +92,7 @@ public class Configuration {
     * @throws Exception 
     */
    public static void loadConfiguration(String configFileName, int siteId, int numberOfSites) throws Exception {
-      if (configuration != null) {
+      if (configuration == null) {
          configuration = new Configuration(configFileName, siteId, numberOfSites);
       }
    }
