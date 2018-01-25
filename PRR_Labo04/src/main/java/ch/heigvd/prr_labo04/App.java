@@ -39,7 +39,8 @@ public class App {
       
       Configuration config;
       try {
-         config = new Configuration("/processes.txt", n);
+         Configuration.loadConfiguration("/processes.txt", id, n);
+         config = Configuration.getConfiguration();
       } catch (Exception ex) {
          System.out.println("An error occured when reading the configuration.");
          Logger.getLogger(App.class.getName())

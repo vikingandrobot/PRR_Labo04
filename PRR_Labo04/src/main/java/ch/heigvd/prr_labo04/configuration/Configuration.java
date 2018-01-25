@@ -19,7 +19,9 @@ import java.util.logging.Logger;
 import javafx.util.Pair;
 
 /**
- * Class to read a configuration from a text file in the resources
+ * This Class encapsulates the configuration of the program, such as the IP
+ * addresses and ports of the sites, the number of sites and the Id of the current 
+ * site. It reads the IP configuration from a text file in the resources
  * folder. This class keeps a list of pairs containing the IP addresses 
  * and port of other sites in the system.
  */
@@ -28,8 +30,12 @@ public class Configuration {
    private final List<Pair<InetAddress, Integer>> sites;
    
    private final int numberOfSites;
+   
+   private final int siteId;
+   
+   private static Configuration configuration;
 
-   public Configuration(String configFileName, int numberOfSites) throws Exception {
+   private Configuration(String configFileName, int siteId, int numberOfSites) throws Exception {
 
       try (
               BufferedReader buffer = new BufferedReader(
@@ -64,6 +70,30 @@ public class Configuration {
       }
       
       this.numberOfSites = numberOfSites;
+      this.siteId = siteId;
+   }
+   
+   /**
+    * Load the Configuration for the program. To be called at the beginning
+    * of the main method.
+    * @param configFileName the path to the configuration file 
+    * @param siteId the current site Id
+    * @param numberOfSites the number of sites in the system
+    * @throws Exception 
+    */
+   public static void loadConfiguration(String configFileName, int siteId, int numberOfSites) throws Exception {
+      if (configuration != null) {
+         configuration = new Configuration(configFileName, siteId, numberOfSites);
+      }
+   }
+   
+   /**
+    * Get the Configuration instance. Better call loadConfiguration before 
+    * calling this method for the first time.
+    * @return the Configuration instance.
+    */
+   public static Configuration getConfiguration() {
+      return configuration;
    }
 
    /**
@@ -82,5 +112,13 @@ public class Configuration {
     */
    public int getNumberOfSites() {
       return numberOfSites;
+   }
+   
+   /**
+    * Get the current site Id
+    * @return the site Id
+    */
+   public int getSiteId() {
+      return siteId;
    }
 }
