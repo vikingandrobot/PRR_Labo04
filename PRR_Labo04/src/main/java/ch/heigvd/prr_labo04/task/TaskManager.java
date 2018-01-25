@@ -4,7 +4,6 @@
  * Authors: Sathiya Kiruhsnapillai & Mathieu Monteverde
  */
 
-
 package ch.heigvd.prr_labo04.task;
 
 /**
