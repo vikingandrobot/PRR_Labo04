@@ -92,7 +92,5 @@ public class App {
             System.out.println("");
          }
       } while(running);
-      
-      System.out.println("End of Main");
    }
 }
