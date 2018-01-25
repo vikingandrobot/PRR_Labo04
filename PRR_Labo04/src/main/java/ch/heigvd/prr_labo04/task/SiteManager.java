@@ -88,7 +88,7 @@ public class SiteManager implements TaskManager {
                   
                   // Add the message to the list and notify the SiteManager
                   synchronized(SiteManager.this) {
-                     messages.add(toMessage(packet.getData()));
+                     messages.add(Message.byteBufferToMessage(packet.getData()));
                      SiteManager.this.notify();
                   }
                } catch (IOException ex) {
@@ -277,7 +277,7 @@ public class SiteManager implements TaskManager {
       
       // Construct the message
       byte[] buf = new byte[2];
-      buf = toByteBuffer(message, buf);
+      buf = Message.messageToByteBuffer(message, buf);
       
       
       try {
@@ -303,31 +303,6 @@ public class SiteManager implements TaskManager {
          ++numberOfTasks;
          System.out.println("A task has started. Remaining: " + numberOfTasks );
       }
-   }
-   
-   /**
-    * Convert a byte array message to a Message.
-    * @param buf the data to convert
-    * @return a new Message representing the message
-    */
-   private Message toMessage(byte[] buf) {
-      byte type = buf[0];
-      byte recipient = buf[1];
-      
-      return new Message(recipient, type);
-   }
-   
-   /**
-    * Convert a Message to its byte array representation 
-    * @param message
-    * @param buf
-    * @return 
-    */
-   private byte[] toByteBuffer(Message message, byte[] buf) {
-      buf[0] = message.getType();
-      buf[1] = (byte)message.getRecipient();
-      
-      return buf;
    }
    
    /**
